@@ -70,4 +70,3 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx electron-builder --publish always
-``
