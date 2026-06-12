@@ -4,15 +4,22 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (optional, e.g. v1.0.0)'
+        required: false
 
 jobs:
   build-windows:
     runs-on: windows-2022
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup MSVC
+      - name: Setup MSVC (for node-gyp)
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Setup Node.js
@@ -26,7 +33,7 @@ jobs:
           go-version-file: 'src/helper-go/go.mod'
           cache-dependency-path: 'src/helper-go/go.sum'
 
-      - name: Enable Yarn
+      - name: Enable Yarn (via Corepack)
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
@@ -38,16 +45,20 @@ jobs:
             node_modules
             **/node_modules
             .yarn/cache
-          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+            ~/.cache/node-gyp
+            ~\AppData\Local\node-gyp
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           npm install -g node-gyp
+          $env:LINK = "runtimeobject.lib"
           yarn install --frozen-lockfile
 
       - name: Build Go helper
         run: |
           go install github.com/tc-hib/go-winres@latest
+
           $GOBIN = (go env GOPATH) + "\bin"
           $env:PATH = "$GOBIN;$env:PATH"
 
@@ -60,4 +71,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          yarn build
+          yarn build --publish always
