@@ -53,7 +53,7 @@ jobs:
         run: |
           npm install -g node-gyp
           $env:LINK = "runtimeobject.lib"
-          yarn install --immutable --immutable-cache
+          yarn install
 
       - name: Build Go helper
         run: |
