@@ -9,7 +9,6 @@ on:
 jobs:
   build-windows:
     runs-on: windows-2022
-    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -18,18 +17,17 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '24'   # ✅ 最新稳定
+          node-version: '24'
 
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version-file: 'src/helper-go/go.mod'
 
-      # ✅ 强制 action 走 Node 24（避免未来炸）
-      - name: Force Node 24
+      - name: Force Node24 for actions
         run: |
           echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true" >> $env:GITHUB_ENV
 
@@ -38,14 +36,12 @@ jobs:
           corepack enable
           corepack prepare yarn@stable --activate
 
-      # ✅ 安装依赖（绝对不能 build）
-      - name: Install dependencies
+      # ✅ 安装依赖（跳过所有编译）
+      - name: Install deps
         run: |
-          npm install -g node-gyp
-          $env:LINK = "runtimeobject.lib"
           yarn install --mode=skip-build
 
-      # ✅ 构建 Go 工具
+      # ✅ 编译 Go
       - name: Build Go helper
         run: |
           go install github.com/tc-hib/go-winres@latest
@@ -57,15 +53,14 @@ jobs:
           go-winres make
           .\build-win.ps1
 
-      # ✅ 构建前端
+      # ✅ 构建前端 + 主进程
       - name: Build App
         run: |
           yarn build
 
-      # ✅ ✅ ✅ 关键！！！禁止 electron rebuild native
+      # ✅ ✅ ✅ 打包（禁止 native rebuild 核心！！）
       - name: Package + Publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_SKIP_BINARY_DOWNLOAD: true
         run: |
           npx electron-builder --publish always --config.npmRebuild=false --config.buildDependenciesFromSource=false
