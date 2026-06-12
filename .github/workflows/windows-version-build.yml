@@ -1,37 +1,51 @@
 name: Build & Release FlyEnv (Windows)
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-windows:
     runs-on: windows-2022
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - uses: actions/setup-go@v6
+      - name: Setup Go
+        uses: actions/setup-go@v6
         with:
           go-version-file: 'src/helper-go/go.mod'
+          cache-dependency-path: 'src/helper-go/go.sum'
 
       - name: Enable Yarn
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
+          npm install -g node-gyp
           yarn install --mode=skip-build
 
       - name: Build Go helper
         run: |
           go install github.com/tc-hib/go-winres@latest
+
           $GOBIN = (go env GOPATH) + "\bin"
           $env:PATH = "$GOBIN;$env:PATH"
 
@@ -40,12 +54,9 @@ jobs:
           go-winres make
           .\build-win.ps1
 
-      - name: Build app
-        run: |
-          yarn build
-
-      - name: Package + Publish
+      - name: Build and package FlyEnv
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINK: runtimeobject.lib
         run: |
-          npx electron-builder --publish always --config.npmRebuild=false --config.buildDependenciesFromSource=false
+          yarn build
