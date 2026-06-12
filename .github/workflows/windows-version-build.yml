@@ -1,9 +1,6 @@
 name: Build & Release FlyEnv (Windows)
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -11,37 +8,27 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6
         with:
           go-version-file: 'src/helper-go/go.mod'
-
-      - name: Force Node24 for actions
-        run: |
-          echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true" >> $env:GITHUB_ENV
 
       - name: Enable Yarn
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
 
-      # ✅ 安装依赖（跳过所有编译）
       - name: Install deps
         run: |
           yarn install --mode=skip-build
 
-      # ✅ 编译 Go
       - name: Build Go helper
         run: |
           go install github.com/tc-hib/go-winres@latest
@@ -53,12 +40,10 @@ jobs:
           go-winres make
           .\build-win.ps1
 
-      # ✅ 构建前端 + 主进程
-      - name: Build App
+      - name: Build app
         run: |
           yarn build
 
-      # ✅ ✅ ✅ 打包（禁止 native rebuild 核心！！）
       - name: Package + Publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
