@@ -15,7 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ✅ 修复 node-gyp / native 依赖
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
@@ -35,18 +34,10 @@ jobs:
           corepack enable
           corepack prepare yarn@stable --activate
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            **/node_modules
-            .yarn/cache
-            ~/.cache/node-gyp
-            ~\AppData\Local\node-gyp
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+      # ✅ 已删除 cache（重要！防止旧 PnP 依赖残留）
+      # ❌ 不再使用 actions/cache
 
-      # ✅ ✅ ✅ 关键修复：禁止 install 阶段 build（否则 CI 会炸）
+      # ✅ 关键：跳过 install 阶段 build
       - name: Install dependencies
         run: |
           npm install -g node-gyp
@@ -65,7 +56,7 @@ jobs:
           go-winres make
           .\build-win.ps1
 
-      # ✅ 真正构建（这里才执行 build）
+      # ✅ 真正构建（这里才 build）
       - name: Build + Publish Electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
