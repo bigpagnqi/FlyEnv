@@ -18,10 +18,11 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
+      # ✅ ✅ ✅ 改成 Node 24（你要的）
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -29,14 +30,17 @@ jobs:
           go-version-file: 'src/helper-go/go.mod'
           cache-dependency-path: 'src/helper-go/go.sum'
 
+      # ✅ 强制 Actions 用 Node 24（避免警告）
+      - name: Enable Node 24 for actions
+        run: |
+          echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true" >> $env:GITHUB_ENV
+
       - name: Enable Yarn
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
 
-      # ✅ 不使用缓存（避免 PnP / 旧依赖问题）
-      # ❌ 故意删除 cache 步骤（这是关键）
-
+      # ✅ 不使用 cache（避免旧依赖污染）
       - name: Install dependencies
         run: |
           npm install -g node-gyp
@@ -55,12 +59,15 @@ jobs:
           go-winres make
           .\build-win.ps1
 
-      - name: Build Electron app
+      # ✅ Electron 构建
+      - name: Build App
         run: |
           yarn build
 
+      # ✅ 打包 + 发布
       - name: Package + Publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx electron-builder --publish always
+``
