@@ -33,7 +33,7 @@ jobs:
           go-version-file: 'src/helper-go/go.mod'
           cache-dependency-path: 'src/helper-go/go.sum'
 
-      - name: Enable Yarn (via Corepack)
+      - name: Enable Yarn (Corepack)
         run: |
           corepack enable
           corepack prepare yarn@stable --activate
@@ -49,11 +49,11 @@ jobs:
             ~\AppData\Local\node-gyp
           key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
 
-      - name: Install dependencies
+      - name: Install dependencies (Yarn 4)
         run: |
           npm install -g node-gyp
           $env:LINK = "runtimeobject.lib"
-         yarn install --immutable --immutable-cache
+          yarn install --immutable --immutable-cache
 
       - name: Build Go helper
         run: |
